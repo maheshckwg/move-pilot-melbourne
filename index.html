@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V9</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V10</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V9</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V10</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -669,33 +669,148 @@ function openStaffAgreement(){
   </div>
   <div class="sigWrap"><label><b>Driver digital signature</b></label><div class="sigHint">Sign below with your finger, stylus or mouse.</div><canvas id="staffSignature" class="signaturePad"></canvas><button class="btn secondary" type="button" onclick="clearSignature('staffSignature')">Clear Signature</button></div>
   <label style="display:flex;gap:8px;margin-top:12px"><input id="staffAgreeCheck" type="checkbox"> <span>I have read and agree to the Driver & Van Responsibility Agreement.</span></label>
-  <div class="actions"><button class="btn primary" onclick="recordStaffAgreement()">Sign & Accept Agreement</button></div>`;
- modal.classList.remove("hidden");setTimeout(()=>initSignaturePad("staffSignature"),80);
+  <div class="actions"><button id="staffAgreementSubmit" class="btn primary" type="button">Sign & Accept Agreement</button></div>
+  <div id="staffAgreementStatus" class="sub" style="margin-top:10px;font-weight:800;min-height:24px"></div>`;
+ modal.classList.remove("hidden");
+ setTimeout(()=>{
+   initSignaturePad("staffSignature");
+   const btn=document.getElementById("staffAgreementSubmit");
+   if(btn)btn.addEventListener("click",recordStaffAgreement,{passive:false});
+ },80);
 }
-async function recordStaffAgreement(){
- const name=document.getElementById("staffAgreeName").value.trim(), licence=document.getElementById("staffLicence").value.trim(), expiry=document.getElementById("staffLicenceExpiry").value, state=document.getElementById("staffLicenceState").value.trim();
- if(!name||!licence||!expiry||!state){toast("Complete all driver licence details");return}
- if(!document.getElementById("staffAgreeCheck").checked){toast("Agreement must be accepted first");return}
- const sig=getSignatureData("staffSignature");if(!sig){toast("Driver signature is required");return}
- const {error}=await sb.from("agreement_acceptances").insert({agreement_type:"staff_vehicle_safety",version:"driver-van-v2",user_id:profile.id,accepted_name:name,signature_data:sig,metadata:{licence_number:licence,licence_expiry:expiry,licence_state:state,van_key_base:"62 Duncombe Ave",agreement_name:"Driver & Van Responsibility Agreement"}});
- if(error){toast(error.message);return}closeModal();toast("Driver agreement signed");await refresh();
+async function recordStaffAgreement(event){
+ if(event){event.preventDefault();event.stopPropagation();}
+ const btn=document.getElementById("staffAgreementSubmit");
+ const statusEl=document.getElementById("staffAgreementStatus");
+ const setStatus=(msg)=>{if(statusEl)statusEl.textContent=msg};
+
+ try{
+  setStatus("Checking agreement…");
+  if(btn){btn.disabled=true;btn.textContent="Saving…";}
+
+  const name=document.getElementById("staffAgreeName")?.value.trim()||"";
+  const licence=document.getElementById("staffLicence")?.value.trim()||"";
+  const expiry=document.getElementById("staffLicenceExpiry")?.value||"";
+  const state=document.getElementById("staffLicenceState")?.value.trim()||"";
+  const checked=!!document.getElementById("staffAgreeCheck")?.checked;
+
+  if(!name||!licence||!expiry||!state){
+    setStatus("❌ Complete all driver licence details.");
+    return;
+  }
+  if(!checked){
+    setStatus("❌ Tick the agreement checkbox first.");
+    return;
+  }
+
+  const sig=getSignatureData("staffSignature");
+  if(!sig){
+    setStatus("❌ Please draw your signature again.");
+    return;
+  }
+
+  // If this version is already saved, do not trap the staff member in the modal.
+  const {data:existing,error:existingError}=await sb.from("agreement_acceptances")
+    .select("id,accepted_at")
+    .eq("agreement_type","staff_vehicle_safety")
+    .eq("version","driver-van-v2")
+    .eq("user_id",profile.id)
+    .maybeSingle();
+
+  if(existingError)throw existingError;
+
+  if(existing){
+    setStatus("✅ Agreement was already saved.");
+    await refresh();
+    setTimeout(()=>closeModal(),500);
+    return;
+  }
+
+  setStatus("Saving signed agreement…");
+
+  const {data,error}=await sb.from("agreement_acceptances").insert({
+    agreement_type:"staff_vehicle_safety",
+    version:"driver-van-v2",
+    user_id:profile.id,
+    accepted_name:name,
+    signature_data:sig,
+    metadata:{
+      licence_number:licence,
+      licence_expiry:expiry,
+      licence_state:state,
+      van_key_base:"62 Duncombe Ave",
+      agreement_name:"Driver & Van Responsibility Agreement"
+    }
+  }).select("id,accepted_at").single();
+
+  if(error)throw error;
+
+  setStatus("✅ Agreement saved successfully.");
+  toast("Driver agreement signed");
+  await refresh();
+  setTimeout(()=>closeModal(),650);
+ }catch(err){
+  console.error("Driver agreement save failed",err);
+  setStatus("❌ "+(err?.message||String(err)));
+ }finally{
+  if(btn){
+    btn.disabled=false;
+    btn.textContent="Sign & Accept Agreement";
+  }
+ }
 }
 
 
 function initSignaturePad(id){
  const canvas=document.getElementById(id); if(!canvas)return;
  const rect=canvas.getBoundingClientRect(), ratio=Math.max(window.devicePixelRatio||1,1);
- canvas.width=Math.max(300,Math.floor(rect.width*ratio)); canvas.height=Math.floor(rect.height*ratio);
- const ctx=canvas.getContext("2d"); ctx.scale(ratio,ratio); ctx.lineWidth=2.2; ctx.lineCap="round"; ctx.strokeStyle="#14213d";
- let drawing=false, dirty=false;
- const point=e=>{const r=canvas.getBoundingClientRect(); const t=e.touches?.[0]||e; return {x:t.clientX-r.left,y:t.clientY-r.top}};
- const start=e=>{e.preventDefault();drawing=true;dirty=true;const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};
- const move=e=>{if(!drawing)return;e.preventDefault();const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};
- const end=e=>{if(drawing){e.preventDefault();drawing=false}};
- canvas.addEventListener("pointerdown",start);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",end);canvas.addEventListener("pointercancel",end);
+ canvas.width=Math.max(300,Math.floor(rect.width*ratio));
+ canvas.height=Math.max(170,Math.floor(rect.height*ratio));
+ const ctx=canvas.getContext("2d");
+ ctx.setTransform(ratio,0,0,ratio,0,0);
+ ctx.lineWidth=2.2;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#14213d";
  canvas.dataset.dirty="false";
- const obs=new MutationObserver(()=>{});
- const oldStroke=ctx.stroke.bind(ctx); ctx.stroke=()=>{canvas.dataset.dirty="true";oldStroke()};
+ let drawing=false;
+
+ const point=e=>{
+   const r=canvas.getBoundingClientRect();
+   const t=e.touches?.[0]||e.changedTouches?.[0]||e;
+   return {x:t.clientX-r.left,y:t.clientY-r.top};
+ };
+ const start=e=>{
+   e.preventDefault();
+   drawing=true;
+   canvas.dataset.dirty="true";
+   const q=point(e);
+   ctx.beginPath();
+   ctx.moveTo(q.x,q.y);
+ };
+ const move=e=>{
+   if(!drawing)return;
+   e.preventDefault();
+   const q=point(e);
+   ctx.lineTo(q.x,q.y);
+   ctx.stroke();
+ };
+ const end=e=>{
+   if(!drawing)return;
+   if(e?.preventDefault)e.preventDefault();
+   drawing=false;
+ };
+
+ if(window.PointerEvent){
+   canvas.addEventListener("pointerdown",start,{passive:false});
+   canvas.addEventListener("pointermove",move,{passive:false});
+   canvas.addEventListener("pointerup",end,{passive:false});
+   canvas.addEventListener("pointercancel",end,{passive:false});
+ }else{
+   canvas.addEventListener("touchstart",start,{passive:false});
+   canvas.addEventListener("touchmove",move,{passive:false});
+   canvas.addEventListener("touchend",end,{passive:false});
+   canvas.addEventListener("mousedown",start);
+   canvas.addEventListener("mousemove",move);
+   canvas.addEventListener("mouseup",end);
+ }
 }
 function clearSignature(id){const c=document.getElementById(id);if(!c)return;const x=c.getContext("2d");x.clearRect(0,0,c.width,c.height);c.dataset.dirty="false"}
 function getSignatureData(id){const c=document.getElementById(id);if(!c||c.dataset.dirty!=="true")return null;return c.toDataURL("image/png")}
@@ -1271,7 +1386,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean9').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean10').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>

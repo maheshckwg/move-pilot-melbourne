@@ -1,18 +1,16 @@
-MOVE PILOT MELBOURNE CLEAN V9 — SIGNATURE FIX
+MOVE PILOT MELBOURNE CLEAN V10 — DRIVER AGREEMENT BUTTON FIX
 
-Critical fix:
-- Staff Driver & Van Responsibility Agreement used the wrong JavaScript helper name.
-- It called signatureData(...), but the app defines getSignatureData(...).
-- This caused Sign & Accept Agreement to fail even when the staff member drew a signature.
-- Fixed all signature call sites to use getSignatureData(...).
+Fixes Sign & Accept Agreement:
+- iPhone-safe addEventListener instead of relying only on inline onclick
+- Visible status directly below button
+- Shows validation errors directly
+- Shows Supabase/RLS/database error directly
+- Displays Saving... while working
+- Detects if the driver-v2 agreement already exists and releases the user
+- More robust pointer/touch signature pad
+- Keeps all V9/V8/V7/V6/V5/V4 features
 
-No new SQL required.
+No SQL changes required.
 
-Test:
-1. Staff logs in.
-2. Open Driver Agreement.
-3. Enter licence details.
-4. Draw signature.
-5. Tick agreement checkbox.
-6. Tap Sign & Accept Agreement.
-7. Agreement should save and the staff member can continue to the job offer / van workflow.
+Open after GitHub upload:
+https://maheshckwg.github.io/move-pilot-melbourne/?v=10
