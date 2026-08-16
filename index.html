@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V10</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V11</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V10</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V11</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -309,8 +309,15 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </section>
 
 <section id="payments" class="hidden">
- <div class="top"><div><h1>Payments & Profit</h1></div></div>
- <div class="cards"><div class="card"><div class="label">Revenue</div><div class="metric" id="rev">$0</div></div><div class="card"><div class="label">Staff Pay</div><div class="metric" id="staffPayTotal">$0</div></div><div class="card"><div class="label">Expenses</div><div class="metric" id="expenseTotal">$0</div></div><div class="card"><div class="label">Profit</div><div class="metric" id="profitTotal">$0</div></div></div>
+ <div class="top"><div><h1>Payments & Staff Settlement</h1><div class="sub">Track customer payments and exactly what each staff member is owed or has already been paid.</div></div></div>
+ <div class="cards">
+  <div class="card"><div class="label">Quoted Revenue</div><div class="metric" id="rev">$0</div></div>
+  <div class="card"><div class="label">Staff Pay Budget</div><div class="metric" id="staffPayTotal">$0</div></div>
+  <div class="card"><div class="label">Expenses</div><div class="metric" id="expenseTotal">$0</div></div>
+  <div class="card"><div class="label">Estimated Profit</div><div class="metric" id="profitTotal">$0</div></div>
+ </div>
+ <div class="section"><h2>Completed Jobs · Staff Pay</h2><div id="staffSettlementCards" class="cards3"></div></div>
+ <div class="section"><h2>Payment Records</h2><div id="paymentRecordCards" class="cards3"></div></div>
 </section>
 </main>
 </div>
@@ -323,7 +330,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="toast"></div>
 
 <script>
-let sb=null, profile=null, jobs=[], offers=[], profiles=[], vehicles=[], acceptances=[], operations=[], incidents=[];
+let sb=null, profile=null, jobs=[], offers=[], profiles=[], vehicles=[], acceptances=[], operations=[], incidents=[], payments=[];
 let activeSignaturePad=null;
 let currentJobFilter='all';
 const CUSTOMER_AGREEMENT_VERSION="2026-08-v1";
@@ -421,6 +428,8 @@ async function refresh(){
  operations=op.data||[];
  const inc=await sb.from("job_incidents").select("*").order("created_at",{ascending:false});
  incidents=inc.data||[];
+ const pay=await sb.from("payments").select("*").order("created_at",{ascending:false});
+ payments=pay.data||[];
  const v=await sb.from("vehicles").select("*").order("name");
  vehicles=v.data||[];
  if(profile.role==="admin"){
@@ -526,6 +535,55 @@ function render(){
   </div>`).join(""):`<div class="card"><b>No vans added yet</b><p class="sub">Add your first van to assign it to jobs and track keys, KM, photos and return records.</p>${profile.role==="admin"?'<button class="btn primary" onclick="openAddVehicle()">＋ Add First Van</button>':""}</div>`;
   const revv=jobs.reduce((a,j)=>a+Number(j.customer_price||0),0),spv=jobs.reduce((a,j)=>a+Number(j.total_staff_payment||0),0),exv=jobs.reduce((a,j)=>a+Number(j.other_expense||0),0);
   rev.textContent=money(revv);staffPayTotal.textContent=money(spv);expenseTotal.textContent=money(exv);profitTotal.textContent=money(revv-spv-exv);
+
+  if(document.getElementById("staffSettlementCards")){
+    const completedJobs=jobs.filter(j=>j.job_status==="completed");
+    staffSettlementCards.innerHTML=completedJobs.length?completedJobs.map(j=>{
+      const accepted=offers.filter(o=>o.job_id===j.id&&o.status==="accepted");
+      const defaultPer=Number(j.total_staff_payment||0)/Math.max(1,accepted.length||Number(j.movers_required||1));
+      const staffRows=accepted.length?accepted.map(o=>{
+        const person=profiles.find(p=>p.id===o.staff_id);
+        const paidRecords=payments.filter(x=>x.job_id===j.id&&x.staff_id===o.staff_id&&x.payment_type==="staff_payment"&&x.status==="paid");
+        const paid=paidRecords.reduce((a,x)=>a+Number(x.amount||0),0);
+        const outstanding=Math.max(0,defaultPer-paid);
+        return `<div style="padding:10px 0;border-top:1px solid #e5e9f1">
+          <b>${esc(person?.full_name||person?.email||"Staff")}</b>
+          <div>Suggested pay: <b>${money(defaultPer)}</b></div>
+          <div>Already paid: <b>${money(paid)}</b></div>
+          <div>Outstanding: <b>${money(outstanding)}</b></div>
+        </div>`;
+      }).join(""):'<div class="sub">No accepted staff recorded.</div>';
+
+      const custPaid=payments.filter(x=>x.job_id===j.id&&x.payment_type==="customer_payment"&&x.status==="paid").reduce((a,x)=>a+Number(x.amount||0),0);
+
+      return `<div class="card">
+        <b style="font-size:18px">${esc(j.job_number)} · ${esc(j.customer_name)}</b>
+        <div class="acceptMeta">Completed job</div>
+        <div style="margin-top:8px">Customer quote: <b>${money(j.customer_price)}</b></div>
+        <div>Customer payments recorded: <b>${money(custPaid)}</b></div>
+        ${staffRows}
+        <div class="actions">
+          <button class="btn primary" onclick="openStaffSettlement('${j.id}')">Staff Settlement</button>
+          <button class="btn secondary" onclick="openCustomerPayment('${j.id}')">Record Customer Payment</button>
+        </div>
+      </div>`;
+    }).join(""):'<div class="card">No completed jobs ready for settlement.</div>';
+
+    paymentRecordCards.innerHTML=payments.length?payments.map(x=>{
+      const j=jobs.find(j=>j.id===x.job_id);
+      const s=profiles.find(p=>p.id===x.staff_id);
+      const who=x.payment_type==="staff_payment"?(s?.full_name||"Staff"):x.payment_type==="customer_payment"?(s?`Customer payment received by ${s.full_name}`:"Customer payment"):"Business expense";
+      return `<div class="card">
+        <b>${esc((x.payment_type||"payment").replaceAll("_"," "))}</b>
+        <div>${esc(j?.job_number||"")}</div>
+        <div>${esc(who)}</div>
+        <div style="font-size:22px;font-weight:900;margin:8px 0">${money(x.amount)}</div>
+        ${statusBadge(x.status)}
+        <div class="acceptMeta">${x.paid_at?new Date(x.paid_at).toLocaleString():new Date(x.created_at).toLocaleString()}${x.note?" · "+esc(x.note):""}</div>
+      </div>`;
+    }).join(""):'<div class="card">No payment records yet.</div>';
+  }
+
   if(document.getElementById("customerAgreementCards")){
    const cas=acceptances.filter(a=>a.agreement_type==="customer_service");
    customerAgreementCards.innerHTML=cas.map(a=>{const j=jobs.find(x=>x.id===a.job_id);return `<div class="card acceptedCard"><b>${esc(j?.job_number||"Customer Agreement")}</b><div>${esc(a.accepted_name||"")}</div><div>${a.signature_data?'<span class="badge green">Signature saved</span>':'<span class="badge amber">No signature</span>'}</div><div class="acceptMeta">Accepted ${new Date(a.accepted_at).toLocaleString()} · Version ${esc(a.version)}</div></div>`}).join("")||'<div class="card">No customer agreements recorded yet.</div>';
@@ -1289,6 +1347,122 @@ async function saveStaffAssignment(jobId){
  await refresh();
 }
 
+
+function openStaffSettlement(jobId){
+ if(profile?.role!=="admin")return;
+ const j=jobs.find(x=>x.id===jobId); if(!j)return;
+ const accepted=offers.filter(o=>o.job_id===jobId&&o.status==="accepted");
+ const defaultPer=Number(j.total_staff_payment||0)/Math.max(1,accepted.length||Number(j.movers_required||1));
+
+ modalTitle.textContent="Staff Settlement · "+j.job_number;
+ modalBody.innerHTML=`
+  <div class="notice">
+   <b>${esc(j.customer_name)}</b><br>
+   Total staff pay budget: <b>${money(j.total_staff_payment)}</b><br>
+   You can change each staff member's actual payment before recording it.
+  </div>
+  <div style="display:grid;gap:12px">
+   ${accepted.length?accepted.map(o=>{
+     const s=profiles.find(p=>p.id===o.staff_id);
+     const already=payments.filter(x=>x.job_id===jobId&&x.staff_id===o.staff_id&&x.payment_type==="staff_payment"&&x.status==="paid").reduce((a,x)=>a+Number(x.amount||0),0);
+     const outstanding=Math.max(0,defaultPer-already);
+     return `<div class="card">
+       <b>${esc(s?.full_name||s?.email||"Staff")}</b>
+       <div class="sub">Already paid: ${money(already)}</div>
+       <div class="field"><label>Amount to pay now</label><input id="staffPay_${o.staff_id}" type="number" min="0" step="0.01" value="${outstanding.toFixed(2)}"></div>
+       <div class="field"><label>Payment method</label>
+        <select id="staffPayMethod_${o.staff_id}">
+         <option value="bank transfer">Bank transfer</option>
+         <option value="cash on the spot">Cash on the spot</option>
+         <option value="card">Card</option>
+         <option value="other">Other</option>
+        </select>
+       </div>
+       <label style="display:flex;gap:8px;align-items:center"><input id="staffPayNow_${o.staff_id}" type="checkbox" checked> <span>Mark as paid now</span></label>
+       <div class="actions"><button class="btn primary" onclick="saveStaffPayment('${jobId}','${o.staff_id}')">Save Payment</button></div>
+     </div>`;
+   }).join(""):'<div class="card">No accepted staff on this job.</div>'}
+  </div>`;
+ modal.classList.remove("hidden");
+}
+
+async function saveStaffPayment(jobId,staffId){
+ if(profile?.role!=="admin")return;
+ const amount=Number(document.getElementById("staffPay_"+staffId)?.value||0);
+ if(amount<=0){toast("Enter an amount greater than $0");return}
+ const method=document.getElementById("staffPayMethod_"+staffId)?.value||"other";
+ const paidNow=!!document.getElementById("staffPayNow_"+staffId)?.checked;
+
+ const {error}=await sb.from("payments").insert({
+   job_id:jobId,
+   staff_id:staffId,
+   payment_type:"staff_payment",
+   amount,
+   status:paidNow?"paid":"pending",
+   paid_at:paidNow?new Date().toISOString():null,
+   note:"Staff payment · "+method,
+   created_by:profile.id
+ });
+ if(error){toast(error.message);return}
+ toast(paidNow?"Staff payment recorded as paid":"Staff payment saved as pending");
+ await refresh();
+ openStaffSettlement(jobId);
+}
+
+function openCustomerPayment(jobId){
+ if(profile?.role!=="admin")return;
+ const j=jobs.find(x=>x.id===jobId); if(!j)return;
+ const accepted=offers.filter(o=>o.job_id===jobId&&o.status==="accepted");
+
+ modalTitle.textContent="Customer Payment · "+j.job_number;
+ modalBody.innerHTML=`
+  <div class="notice"><b>${esc(j.customer_name)}</b><br>Quoted amount: <b>${money(j.customer_price)}</b></div>
+  <div class="formgrid">
+   <div class="field"><label>Amount received</label><input id="cpAmount" type="number" min="0" step="0.01" value="${Number(j.customer_price||0).toFixed(2)}"></div>
+   <div class="field"><label>Payment method</label>
+    <select id="cpMethod">
+     <option value="cash on the spot">Cash on the spot</option>
+     <option value="bank transfer">Bank transfer</option>
+     <option value="card">Card</option>
+     <option value="other">Other</option>
+    </select>
+   </div>
+   <div class="field full"><label>Received by staff (optional)</label>
+    <select id="cpReceivedBy">
+     <option value="">Business / admin</option>
+     ${accepted.map(o=>{const s=profiles.find(p=>p.id===o.staff_id);return `<option value="${o.staff_id}">${esc(s?.full_name||s?.email||"Staff")}</option>`}).join("")}
+    </select>
+   </div>
+   <div class="field full"><label>Note</label><textarea id="cpNote" placeholder="e.g. Customer paid cash to driver after move"></textarea></div>
+  </div>
+  <div class="actions"><button class="btn primary" onclick="saveCustomerPayment('${jobId}')">Record Paid</button></div>`;
+ modal.classList.remove("hidden");
+}
+
+async function saveCustomerPayment(jobId){
+ if(profile?.role!=="admin")return;
+ const amount=Number(document.getElementById("cpAmount")?.value||0);
+ if(amount<=0){toast("Enter the amount received");return}
+ const method=document.getElementById("cpMethod")?.value||"other";
+ const staffId=document.getElementById("cpReceivedBy")?.value||null;
+ const note=document.getElementById("cpNote")?.value.trim()||"";
+
+ const {error}=await sb.from("payments").insert({
+   job_id:jobId,
+   staff_id:staffId,
+   payment_type:"customer_payment",
+   amount,
+   status:"paid",
+   paid_at:new Date().toISOString(),
+   note:"Customer payment · "+method+(note?" · "+note:""),
+   created_by:profile.id
+ });
+ if(error){toast(error.message);return}
+ closeModal();toast("Customer payment recorded");await refresh();
+ show("payments");
+}
+
+
 function openAddVehicle(){
  if(profile?.role!=="admin")return;
  modalTitle.textContent="Add Van";
@@ -1386,7 +1560,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean10').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean11').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>
