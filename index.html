@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V4</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V5</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V4</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V5</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -303,7 +303,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <section id="agreements" class="hidden">
  <div class="top"><div><h1>Agreements & Records</h1><div class="sub">Signatures, vehicle handover, completion and incident records.</div></div></div>
  <div class="section"><h2>Customer Agreements</h2><div id="customerAgreementCards" class="cards3"></div></div>
- <div class="section"><h2>Staff Vehicle & Safety Agreements</h2><div id="staffAgreementCards" class="cards3"></div></div>
+ <div class="section"><h2>Driver & Van Responsibility Agreements</h2><div id="staffAgreementCards" class="cards3"></div></div>
  <div class="section"><h2>Job Completion Records</h2><div id="completionCards" class="cards3"></div></div>
  <div class="section"><h2>Fines / Accidents / Incidents</h2><div id="incidentCards" class="cards3"></div></div>
 </section>
@@ -461,7 +461,7 @@ function render(){
      action=`${flowAction} ${cancelAction} <button class="btn secondary" onclick="editJob('${j.id}')">Edit</button> <button class="btn danger" onclick="deleteJob('${j.id}')">Delete</button>`;
    } else if(mine?.status==="offered"){
      const staffAgreed=hasStaffAgreement(profile.id);
-     action=staffAgreed?`<button class="btn primary" onclick="respondOffer('${mine.id}','accepted')">Accept Job</button> <button class="btn danger" onclick="respondOffer('${mine.id}','declined')">Decline</button>`:`<button class="btn primary" onclick="openStaffAgreement()">Read & Accept Staff Agreement</button>`;
+     action=staffAgreed?`<button class="btn primary" onclick="respondOffer('${mine.id}','accepted')">Accept Job</button> <button class="btn danger" onclick="respondOffer('${mine.id}','declined')">Decline</button>`:`<button class="btn primary" onclick="openStaffAgreement()">Sign Driver Agreement</button>`;
    } else if(mine?.status==="accepted"){
      action=`<button class="btn primary" onclick="openJobOperations('${j.id}')">Job Operations</button>`;
    } else if(mine) action=statusBadge(mine.status);
@@ -484,7 +484,7 @@ function render(){
          : (j.job_status==="completed" ? "" : `<button class="btn danger" onclick="cancelJob('${j.id}')">Cancel</button>`);
        action=`${flowAction}${cancelAction}<button class="btn secondary" onclick="editJob('${j.id}')">Edit</button><button class="btn danger" onclick="deleteJob('${j.id}')">Delete</button>`;
      } else if(mine?.status==="offered"){
-       action=hasStaffAgreement(profile.id)?`<button class="btn primary" onclick="respondOffer('${mine.id}','accepted')">Accept Job</button><button class="btn danger" onclick="respondOffer('${mine.id}','declined')">Decline</button>`:`<button class="btn primary" onclick="openStaffAgreement()">Read & Accept Agreement</button>`;
+       action=hasStaffAgreement(profile.id)?`<button class="btn primary" onclick="respondOffer('${mine.id}','accepted')">Accept Job</button><button class="btn danger" onclick="respondOffer('${mine.id}','declined')">Decline</button>`:`<button class="btn primary" onclick="openStaffAgreement()">Sign Driver Agreement</button>`;
      } else if(mine?.status==="accepted"){
        action=`<button class="btn primary" onclick="openJobOperations('${j.id}')">Job Operations</button>`;
      } else if(mine) action=statusBadge(mine.status);
@@ -568,7 +568,7 @@ async function respondOffer(id,status){
 
 
 function hasStaffAgreement(uid){
- return acceptances.some(a=>a.agreement_type==="staff_vehicle_safety"&&a.user_id===uid&&a.version===STAFF_AGREEMENT_VERSION);
+ return agreements.some(a=>a.agreement_type==="staff_vehicle_safety"&&a.user_id===uid&&a.version==="driver-van-v2");
 }
 function customerTermsHtml(j){
  return `<div class="agreement">
@@ -636,30 +636,35 @@ function staffTermsHtml(){
  </div>`;
 }
 function openStaffAgreement(){
- if(profile?.role!=="staff")return;
- modalTitle.textContent="Staff Vehicle & Safety Agreement";
- modalBody.innerHTML=`${staffTermsHtml()}
- <div class="agreeBox">
-  <div class="field"><label>Your full name</label><input id="staffAcceptName" value="${esc(profile.full_name)}"></div>
-  <div class="sigWrap"><label><b>Your signature</b></label><div class="sigHint">Sign below with your finger or stylus.</div><canvas id="staffSignature" class="signaturePad"></canvas><button class="btn secondary" type="button" onclick="clearSignature('staffSignature')">Clear Signature</button></div>
-  <label><input id="staffAgreeCheck" type="checkbox"> <span>I have read, understood and agree to follow the Move Pilot Staff Vehicle & Safety Agreement.</span></label>
-  <div class="actions"><button class="btn primary" onclick="recordStaffAgreement()">Sign & Accept Agreement</button></div>
- </div>`;
- modal.classList.remove("hidden");
- setTimeout(()=>initSignaturePad("staffSignature"),50);
+ modalTitle.textContent="Driver & Van Responsibility Agreement";
+ modalBody.innerHTML=`
+  <div class="notice"><b>Required before accepting/collecting a van job.</b> Van & key base: <b>62 Duncombe Ave</b>.</div>
+  <div class="publicTerms">
+   <p><b>Move Pilot Melbourne — Driver & Van Responsibility Agreement</b></p>
+   <p>The assigned van and keys must be collected from 62 Duncombe Ave before the job and returned there after the job unless Move Pilot admin gives different written instructions.</p>
+   <p>While driving or controlling a Move Pilot vehicle, the driver must hold a valid licence, obey road and parking laws, use the vehicle only for authorised work, and take reasonable care of the van, keys, equipment and customer property.</p>
+   <p>The driver must promptly report any traffic infringement, parking fine, toll notice, accident, collision, breakdown, vehicle damage, customer-property damage or other incident, and provide truthful information and reasonable cooperation with lawful driver-nomination and insurance processes.</p>
+   <p>Traffic or parking offences legally attributable to the driver may be nominated or dealt with according to applicable law. Accident, damage or other financial responsibility is not automatically imposed by this agreement and will be assessed according to the facts, insurance, applicable law and lawful employment arrangements.</p>
+   <p>The handover record includes the job, assigned van, collection/return times, starting/final KM and before/after photographs.</p>
+  </div>
+  <div class="formgrid">
+   <div class="field"><label>Driver full name</label><input id="staffAgreeName" value="${esc(profile?.full_name||"")}"></div>
+   <div class="field"><label>Driver licence number</label><input id="staffLicence"></div>
+   <div class="field"><label>Licence expiry</label><input id="staffLicenceExpiry" type="date"></div>
+   <div class="field"><label>Licence state / issuer</label><input id="staffLicenceState" value="VIC"></div>
+  </div>
+  <div class="sigWrap"><label><b>Driver digital signature</b></label><div class="sigHint">Sign below with your finger, stylus or mouse.</div><canvas id="staffSignature" class="signaturePad"></canvas><button class="btn secondary" type="button" onclick="clearSignature('staffSignature')">Clear Signature</button></div>
+  <label style="display:flex;gap:8px;margin-top:12px"><input id="staffAgreeCheck" type="checkbox"> <span>I have read and agree to the Driver & Van Responsibility Agreement.</span></label>
+  <div class="actions"><button class="btn primary" onclick="recordStaffAgreement()">Sign & Accept Agreement</button></div>`;
+ modal.classList.remove("hidden");setTimeout(()=>initSignaturePad("staffSignature"),80);
 }
 async function recordStaffAgreement(){
- const name=document.getElementById("staffAcceptName").value.trim();
- if(!name){toast("Enter your full name");return}
- if(!document.getElementById("staffAgreeCheck").checked){toast("Please accept the agreement");return}
- const signature=getSignatureData("staffSignature");
- if(!signature){toast("Your signature is required");return}
- const existing=acceptances.find(a=>a.agreement_type==="staff_vehicle_safety"&&a.user_id===profile.id&&a.version===STAFF_AGREEMENT_VERSION);
- if(!existing){
-  const {error}=await sb.from("agreement_acceptances").insert({agreement_type:"staff_vehicle_safety",version:STAFF_AGREEMENT_VERSION,user_id:profile.id,accepted_name:name,signature_data:signature,metadata:{key_collection_location:"62 Duncombe Avenue",signature_method:"drawn"}});
-  if(error){toast(error.message);return}
- }
- closeModal();toast("Staff agreement accepted");await refresh();
+ const name=document.getElementById("staffAgreeName").value.trim(), licence=document.getElementById("staffLicence").value.trim(), expiry=document.getElementById("staffLicenceExpiry").value, state=document.getElementById("staffLicenceState").value.trim();
+ if(!name||!licence||!expiry||!state){toast("Complete all driver licence details");return}
+ if(!document.getElementById("staffAgreeCheck").checked){toast("Agreement must be accepted first");return}
+ const sig=signatureData("staffSignature");if(!sig){toast("Driver signature is required");return}
+ const {error}=await sb.from("agreement_acceptances").insert({agreement_type:"staff_vehicle_safety",version:"driver-van-v2",user_id:profile.id,accepted_name:name,signature_data:sig,metadata:{licence_number:licence,licence_expiry:expiry,licence_state:state,van_key_base:"62 Duncombe Ave",agreement_name:"Driver & Van Responsibility Agreement"}});
+ if(error){toast(error.message);return}closeModal();toast("Driver agreement signed");await refresh();
 }
 
 
@@ -720,6 +725,7 @@ async function ensureOperation(jobId){
  operations.unshift(data);return data;
 }
 function openJobOperations(jobId){
+ if(profile.role==="staff"&&!hasStaffAgreement(profile.id)){toast("Sign the Driver & Van Responsibility Agreement before collecting the van or keys");openStaffAgreement();return}
  const j=jobs.find(x=>x.id===jobId); if(!j)return;
  let op=operationFor(jobId);
  currentOpJobId=jobId;opPhotoDraft={before:[...(op?.before_photos||[])],after:[...(op?.after_photos||[])]};
@@ -758,7 +764,7 @@ function openJobOperations(jobId){
  modal.classList.remove("hidden");renderOperationPhotos();
 }
 async function recordKeyCollected(jobId){
- if(profile.role==="staff"&&!hasStaffAgreement(profile.id)){toast("Accept the staff agreement first");return}
+ if(profile.role==="staff"&&!hasStaffAgreement(profile.id)){toast("Sign the Driver & Van Responsibility Agreement first");return}
  if(!opPhotoDraft.before.length){toast("Take at least one before photo");return}
  const km=Number(document.getElementById("opBeforeKm").value||0);
  let op=await ensureOperation(jobId);if(!op)return;
@@ -1162,7 +1168,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean4').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean5').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>
