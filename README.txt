@@ -1,13 +1,18 @@
-MOVE PILOT MELBOURNE CLEAN V8 — STAFF LOGIN FIX
+MOVE PILOT MELBOURNE CLEAN V9 — SIGNATURE FIX
 
 Critical fix:
-- Staff login was crashing during dashboard render because hasStaffAgreement() referenced a non-existent variable named `agreements`.
-- The correct loaded agreement array is `acceptances`.
-- This caused the staff account to briefly log in and immediately return to the login screen.
-- Fixed to use acceptances.
-- Keeps V7 Assign Staff, V6 secure offer response, V5 Driver Agreement, and V4 van workflow.
+- Staff Driver & Van Responsibility Agreement used the wrong JavaScript helper name.
+- It called signatureData(...), but the app defines getSignatureData(...).
+- This caused Sign & Accept Agreement to fail even when the staff member drew a signature.
+- Fixed all signature call sites to use getSignatureData(...).
 
 No new SQL required.
 
-After upload, test staff login at:
-https://maheshckwg.github.io/move-pilot-melbourne/?v=8
+Test:
+1. Staff logs in.
+2. Open Driver Agreement.
+3. Enter licence details.
+4. Draw signature.
+5. Tick agreement checkbox.
+6. Tap Sign & Accept Agreement.
+7. Agreement should save and the staff member can continue to the job offer / van workflow.
