@@ -1,27 +1,21 @@
-MOVE PILOT MELBOURNE - CLEAN V2
-================================
+MOVE PILOT MELBOURNE - CLEAN V3
 
-Fix:
-- Repairs the JavaScript syntax error that caused the dashboard to display while buttons and filters did nothing.
+Critical fix:
+- Fixed the broken JavaScript template string in the mobile job-card renderer.
+- The complete inline JavaScript was checked with Node's syntax checker before packaging.
+- This fixes the symptom where the dashboard displayed but every button was dead.
+- Includes the correct Move Pilot Melbourne logo artwork.
 
-Working actions now include:
-- New Inquiry
-- Job filters
-- Create Quote
-- Email for Signature
-- Edit / Cancel / Reopen / Delete jobs
-- Offer Staff
-- Staff job acceptance
-- Vans and vehicle editing
-- Agreements and signatures
-- Job operations
-- Payments
-- Incident / fine / accident records
+No new Supabase SQL is required.
 
-Database:
-Uses the same NEW Move Pilot Melbourne Supabase project already configured in config.js.
-No SQL changes are required for this V2 fix.
-
-Upload all files in this package to the existing GitHub repository:
+Upload ALL files to the existing GitHub repository:
 move-pilot-melbourne
-Replace the current files.
+
+Replace the current files, then open:
+https://maheshckwg.github.io/move-pilot-melbourne/?v=3
+
+First tests:
+1. Tap Sign out — it should show Login.
+2. Sign back in.
+3. Tap + New Inquiry — the inquiry form should open.
+4. Tap the status filters — they should respond.

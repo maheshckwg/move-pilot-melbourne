@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Move Pilot Melbourne Clean V2</title>
+<title>Move Pilot Melbourne Clean V3</title>
 <script src="config.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="theme-color" content="#10233f"/>
@@ -198,7 +198,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 
 <div id="publicSignScreen" class="login hidden">
  <div class="panel" style="max-width:720px">
-  <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
+  <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div><img src="move-pilot-logo.jpg" alt="Move Pilot Melbourne" style="width:100%;max-height:170px;object-fit:contain;border-radius:14px;margin:8px 0 16px">
   <h2>Quotation & Service Agreement</h2>
   <div id="publicSignBody"><div class="sub">Loading your quotation…</div></div>
  </div>
@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V2</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V3</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V2</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V3</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -476,7 +476,7 @@ function render(){
      } else if(mine) action=statusBadge(mine.status);
      const customer=profile.role==="admin"?j.customer_name:(mine?j.customer_name:"Job");
      const pay=profile.role!=="admin"&&mine?`<div class="mobileMetaRow"><b>Your estimated pay</b>${money(Number(j.total_staff_payment||0)/Math.max(1,Number(j.movers_required||1)))}</div>`:"";
-     return `<div class="mobileJobCard ${j.job_status==="cancelled"?"cancelledCard":""}">`
+     return `<div class="mobileJobCard ${j.job_status==="cancelled"?"cancelledCard":""}">
        <div class="mobileJobTop"><div><div class="mobileJobNo">${esc(j.job_number)}</div><div class="mobileCustomer">${esc(customer||"")}</div></div>${statusBadge(j.job_status)}</div>
        <div class="mobileMeta">
          <div class="mobileMetaRow"><b>Date & time</b>${j.move_date||"Not set"} ${(j.start_time||"").slice(0,5)}</div>
@@ -1096,7 +1096,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean2').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean3').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>
