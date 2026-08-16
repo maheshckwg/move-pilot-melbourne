@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Move Pilot Melbourne Clean V3</title>
+<title>Move Pilot Melbourne Clean V4</title>
 <script src="config.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="theme-color" content="#10233f"/>
@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V3</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V4</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V3</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V4</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -270,6 +270,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
    <div class="field"><label>Customer price</label><input id="jPrice" type="number"></div>
    <div class="field"><label>Total staff payment</label><input id="jStaffPay" type="number"></div>
    <div class="field"><label>Other expense</label><input id="jExpense" type="number" value="0"></div>
+   <div class="field"><label>Assigned van</label><select id="jVehicle"><option value="">No van assigned yet</option></select></div>
    <div class="field full"><label>Pickup</label><input id="jPickup"></div>
    <div class="field full"><label>Drop-off</label><input id="jDropoff"></div>
    <div class="field full"><label>Notes</label><textarea id="jNotes"></textarea></div>
@@ -284,7 +285,19 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </section>
 
 <section id="van" class="hidden">
- <div class="top"><div><h1>Van</h1></div></div><div id="vanCards" class="cards3"></div>
+ <div class="top">
+  <div>
+   <h1>Van</h1>
+   <div class="sub">Move Pilot Melbourne vehicle management</div>
+  </div>
+  <button class="btn primary adminOnly" onclick="openAddVehicle()">＋ Add Van</button>
+ </div>
+ <div class="card" style="margin-bottom:16px">
+  <b>🏠 Van & Key Base</b>
+  <div style="font-size:18px;font-weight:800;margin-top:6px">62 Duncombe Ave</div>
+  <div class="sub">Staff collect the assigned van and keys here before the job and return the van and keys here after the job, unless admin gives different instructions.</div>
+ </div>
+ <div id="vanCards" class="cards3"></div>
 </section>
 
 <section id="agreements" class="hidden">
@@ -407,9 +420,10 @@ async function refresh(){
  operations=op.data||[];
  const inc=await sb.from("job_incidents").select("*").order("created_at",{ascending:false});
  incidents=inc.data||[];
+ const v=await sb.from("vehicles").select("*").order("name");
+ vehicles=v.data||[];
  if(profile.role==="admin"){
   const p=await sb.from("profiles").select("*").order("full_name");profiles=p.data||[];
-  const v=await sb.from("vehicles").select("*");vehicles=v.data||[];
  }
  render()
 }
@@ -490,16 +504,23 @@ function render(){
  }
  if(profile.role==="admin"){
   staffCards.innerHTML=profiles.filter(p=>p.role==="staff").map(p=>`<div class="card"><b>${p.full_name}</b><div class="sub">${p.phone||""}</div><p>${p.available?'<span class="badge green">Available</span>':'<span class="badge amber">Unavailable</span>'}</p></div>`).join("");
-  vanCards.innerHTML=vehicles.map(v=>`<div class="card">
-    <b style="font-size:18px">${esc(v.name)}</b>
+  if(document.getElementById("jVehicle")){
+    const selected=document.getElementById("jVehicle").value;
+    document.getElementById("jVehicle").innerHTML='<option value="">No van assigned yet</option>'+vehicles.filter(v=>v.active).map(v=>`<option value="${v.id}">${esc(v.name)}${v.registration?` · ${esc(v.registration)}`:""}</option>`).join("");
+    if(selected)document.getElementById("jVehicle").value=selected;
+  }
+  vanCards.innerHTML=vehicles.length?vehicles.map(v=>`<div class="card">
+    <b style="font-size:20px">${esc(v.name)}</b>
     <p>Registration: <b>${esc(v.registration||"-")}</b></p>
     <p>Current KM: <b>${v.current_km||0}</b></p>
     <p>Rego expiry: <b>${v.rego_expiry||"-"}</b></p>
     <p>Insurance expiry: <b>${v.insurance_expiry||"-"}</b></p>
     <p>Service due: <b>${v.service_due||"-"}</b></p>
+    <p>Base: <b>62 Duncombe Ave</b></p>
+    ${v.notes?`<p>Notes: ${esc(v.notes)}</p>`:""}
     <p>${v.active?'<span class="badge green">Active</span>':'<span class="badge amber">Inactive</span>'}</p>
-    <div class="actions"><button class="btn primary" onclick="editVehicle('${v.id}')">Edit Vehicle</button></div>
-  </div>`).join("");
+    ${profile.role==="admin"?`<div class="actions"><button class="btn primary" onclick="editVehicle('${v.id}')">Edit Vehicle</button></div>`:""}
+  </div>`).join(""):`<div class="card"><b>No vans added yet</b><p class="sub">Add your first van to assign it to jobs and track keys, KM, photos and return records.</p>${profile.role==="admin"?'<button class="btn primary" onclick="openAddVehicle()">＋ Add First Van</button>':""}</div>`;
   const revv=jobs.reduce((a,j)=>a+Number(j.customer_price||0),0),spv=jobs.reduce((a,j)=>a+Number(j.total_staff_payment||0),0),exv=jobs.reduce((a,j)=>a+Number(j.other_expense||0),0);
   rev.textContent=money(revv);staffPayTotal.textContent=money(spv);expenseTotal.textContent=money(exv);profitTotal.textContent=money(revv-spv-exv);
   if(document.getElementById("customerAgreementCards")){
@@ -518,7 +539,7 @@ function render(){
 async function createJob(){
  if(profile.role!=="admin")return;
  const num="MP-"+Date.now().toString().slice(-6);
- const vehicle=vehicles[0]?.id||null;
+ const vehicle=document.getElementById("jVehicle")?.value||null;
  const payload={job_number:num,customer_name:jCustomer.value,pickup:jPickup.value,dropoff:jDropoff.value,customer_phone:jPhone.value,customer_email:jEmail.value,move_date:jDate.value||null,start_time:jTime.value||null,duration_hours:Number(jDuration.value||3),movers_required:Number(jMovers.value||2),customer_price:Number(jPrice.value||0),total_staff_payment:Number(jStaffPay.value||0),other_expense:Number(jExpense.value||0),notes:jNotes.value,vehicle_id:vehicle,created_by:profile.id};
  const {error}=await sb.from("jobs").insert(payload);if(error){toast(error.message);return}toast("Inquiry created");show("dashboard");await refresh()
 }
@@ -707,6 +728,7 @@ function openJobOperations(jobId){
  modalBody.innerHTML=`
  <div class="card">
   <b>${esc(j.customer_name)}</b><div class="sub">${esc(j.pickup)} → ${esc(j.dropoff)}</div>
+  ${(()=>{const v=vehicles.find(x=>x.id===j.vehicle_id);return `<div style="margin-top:12px;padding:12px;border-radius:12px;background:#f7f9fc"><b>🚐 Assigned Van</b><div>${v?`${esc(v.name)}${v.registration?` · ${esc(v.registration)}`:""} · ${v.current_km||0} KM`:"No van assigned yet"}</div><div class="sub">Collect van & keys from <b>62 Duncombe Ave</b> before the job. Return van & keys to <b>62 Duncombe Ave</b> after the job.</div></div>`})()}
   <div class="opGrid">
    <div class="opBox"><b>🚐 Van / Key Collection</b><div class="opState">${op?.key_collected_at?`Collected ${new Date(op.key_collected_at).toLocaleString()}`:"Not collected yet"}</div></div>
    <div class="opBox"><b>🔑 Key Return</b><div class="opState">${op?.key_returned_at?`Returned ${new Date(op.key_returned_at).toLocaleString()}`:"Not returned yet"}</div></div>
@@ -725,7 +747,7 @@ function openJobOperations(jobId){
  </div>
  <div class="field"><label>Final KM when returning van</label><input id="opAfterKm" type="number" min="0" value="${op?.after_km??""}" ${op?.completed_at?"disabled":""}></div>
  <div class="field"><label>Operations notes</label><textarea id="opNotes" ${op?.completed_at&&profile.role!=="admin"?"disabled":""}>${esc(op?.notes||"")}</textarea></div>
- <div class="notice">Key collection/return location: <b>62 Duncombe Avenue</b>, unless Move Pilot gives different instructions for the job.</div>
+ <div class="notice">Van and key collection/return location: <b>62 Duncombe Ave</b>. Staff must collect the assigned van and keys here before leaving for the job and return the van and keys here after the job, unless admin gives different instructions.</div>
  <div class="actions">
   ${!op?.key_collected_at?`<button class="btn primary" onclick="recordKeyCollected('${jobId}')">Collect Van & Keys</button>`:""}
   ${op?.key_collected_at&&!op?.started_at?`<button class="btn primary" onclick="recordJobStarted('${jobId}')">Start Job</button>`:""}
@@ -762,10 +784,14 @@ async function returnKeysAndComplete(jobId){
  const afterKm=Number(document.getElementById("opAfterKm").value||0);
  let op=await ensureOperation(jobId);if(!op)return;
  if(op.before_km!=null&&afterKm&&afterKm<Number(op.before_km)){toast("Final KM cannot be lower than collection KM");return}
- if(!confirm("Confirm the van and keys have been returned to 62 Duncombe Avenue (or the location authorised by Move Pilot) and complete this job?"))return;
+ if(!confirm("Confirm the van and keys have been returned to 62 Duncombe Ave (or another location specifically authorised by Move Pilot) and complete this job?"))return;
  const now=new Date().toISOString();
  const {error}=await sb.from("job_operations").update({key_returned_at:now,completed_at:now,after_km:afterKm,after_photos:opPhotoDraft.after,notes:document.getElementById("opNotes").value}).eq("id",op.id);
  if(error){toast(error.message);return}
+ const j=jobs.find(x=>x.id===jobId);
+ if(j?.vehicle_id && afterKm){
+   await sb.from("vehicles").update({current_km:afterKm}).eq("id",j.vehicle_id);
+ }
  if(profile.role==="staff"){const r=await sb.rpc("staff_complete_job",{p_job_id:jobId});if(r.error){toast(r.error.message);return}}
  else await sb.from("jobs").update({job_status:"completed"}).eq("id",jobId);
  closeModal();toast("Van returned and job completed");await refresh();
@@ -982,6 +1008,7 @@ function editJob(id){
    <div class="field"><label>Customer price</label><input id="ePrice" type="number" value="${j.customer_price||0}"></div>
    <div class="field"><label>Total staff payment</label><input id="eStaffPay" type="number" value="${j.total_staff_payment||0}"></div>
    <div class="field"><label>Other expense</label><input id="eExpense" type="number" value="${j.other_expense||0}"></div>
+   <div class="field"><label>Assigned van</label><select id="eVehicle"><option value="">No van assigned</option>${vehicles.map(v=>`<option value="${v.id}" ${j.vehicle_id===v.id?"selected":""}>${esc(v.name)}${v.registration?` · ${esc(v.registration)}`:""}</option>`).join("")}</select></div>
    <div class="field full"><label>Pickup address</label><input id="ePickup" value="${esc(j.pickup)}"></div>
    <div class="field full"><label>Drop-off address</label><input id="eDropoff" value="${esc(j.dropoff)}"></div>
    <div class="field full"><label>Notes</label><textarea id="eNotes">${esc(j.notes)}</textarea></div>
@@ -1001,6 +1028,7 @@ async function saveJobEdit(id){
   customer_price:Number(ePrice.value||0),
   total_staff_payment:Number(eStaffPay.value||0),
   other_expense:Number(eExpense.value||0),
+  vehicle_id:document.getElementById("eVehicle")?.value||null,
   pickup:ePickup.value.trim(),
   dropoff:eDropoff.value.trim(),
   notes:eNotes.value
@@ -1036,6 +1064,42 @@ async function reopenJob(id){
  toast("Job reopened as inquiry");await refresh();
 }
 
+
+function openAddVehicle(){
+ if(profile?.role!=="admin")return;
+ modalTitle.textContent="Add Van";
+ modalBody.innerHTML=`
+  <div class="notice"><b>Van base:</b> 62 Duncombe Ave. Staff collect the van and keys here before jobs and return them here after jobs.</div>
+  <div class="formgrid">
+   <div class="field full"><label>Vehicle name</label><input id="nvName" placeholder="e.g. Mercedes-Benz Sprinter"></div>
+   <div class="field"><label>Registration</label><input id="nvReg"></div>
+   <div class="field"><label>Current KM</label><input id="nvKm" type="number" min="0" value="0"></div>
+   <div class="field"><label>Rego expiry</label><input id="nvRego" type="date"></div>
+   <div class="field"><label>Insurance expiry</label><input id="nvInsurance" type="date"></div>
+   <div class="field"><label>Service due</label><input id="nvService" type="date"></div>
+   <div class="field full"><label>Notes</label><textarea id="nvNotes" placeholder="Fuel type, height restrictions, equipment, damage notes, etc."></textarea></div>
+  </div>
+  <div class="actions"><button class="btn primary" onclick="saveNewVehicle()">Save Van</button></div>`;
+ modal.classList.remove("hidden");
+}
+async function saveNewVehicle(){
+ if(profile?.role!=="admin")return;
+ const payload={
+  name:document.getElementById("nvName").value.trim(),
+  registration:document.getElementById("nvReg").value.trim()||null,
+  current_km:Number(document.getElementById("nvKm").value||0),
+  rego_expiry:document.getElementById("nvRego").value||null,
+  insurance_expiry:document.getElementById("nvInsurance").value||null,
+  service_due:document.getElementById("nvService").value||null,
+  notes:document.getElementById("nvNotes").value.trim()||null,
+  active:true
+ };
+ if(!payload.name){toast("Vehicle name is required");return}
+ const {error}=await sb.from("vehicles").insert(payload);
+ if(error){toast(error.message);return}
+ closeModal();toast("Van added");await refresh();show("van");
+}
+
 function editVehicle(id){
  if(profile?.role!=="admin")return;
  const v=vehicles.find(x=>x.id===id); if(!v)return;
@@ -1048,6 +1112,7 @@ function editVehicle(id){
     <div class="field"><label>Rego expiry</label><input id="vRego" type="date" value="${v.rego_expiry||""}"></div>
     <div class="field"><label>Insurance expiry</label><input id="vInsurance" type="date" value="${v.insurance_expiry||""}"></div>
     <div class="field"><label>Service due</label><input id="vService" type="date" value="${v.service_due||""}"></div>
+    <div class="field full"><label>Notes</label><textarea id="vNotes">${esc(v.notes||"")}</textarea></div>
     <div class="field full">
       <label>Status</label>
       <select id="vActive">
@@ -1071,6 +1136,7 @@ async function saveVehicleEdit(id){
    rego_expiry:vRego.value||null,
    insurance_expiry:vInsurance.value||null,
    service_due:vService.value||null,
+   notes:document.getElementById("vNotes").value.trim()||null,
    active:vActive.value==="true"
  };
  if(!payload.name){toast("Vehicle name is required");return}
@@ -1096,7 +1162,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean3').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean4').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>
