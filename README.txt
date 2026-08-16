@@ -1,34 +1,27 @@
-MOVE PILOT MELBOURNE - CLEAN V1
+MOVE PILOT MELBOURNE - CLEAN V2
 ================================
 
-This is the new fresh app connected directly to the new Supabase project.
+Fix:
+- Repairs the JavaScript syntax error that caused the dashboard to display while buttons and filters did nothing.
 
-Supabase Project:
-https://wqnmpqjjwvwdqwqjzphv.supabase.co
-
-Included:
-- Admin / staff login and roles
-- Mobile-friendly dashboard
-- Pending / Needs Staff / Confirmed / In Progress / Completed / Cancelled job flow
-- Create / edit / cancel / reopen / delete jobs
-- Customer quotation
-- Customer email signing link
-- Customer digital signature
-- Staff agreement + signature
-- Staff job offers and acceptance
-- Van details + editing
-- Van/key collection + return
-- Before/after van photos
-- Starting/final KM records
-- Accident/fine/damage/incident records
-- Admin responsibility review
-- Automatic completion records
+Working actions now include:
+- New Inquiry
+- Job filters
+- Create Quote
+- Email for Signature
+- Edit / Cancel / Reopen / Delete jobs
+- Offer Staff
+- Staff job acceptance
+- Vans and vehicle editing
+- Agreements and signatures
+- Job operations
 - Payments
-- Home Screen / PWA support
-- Same Move Pilot logo/icons
+- Incident / fine / accident records
 
-IMPORTANT:
-- The app uses the browser-safe sb_publishable_ key.
-- Never place an sb_secret_ key in config.js.
-- Upload ALL files in this package to the root of the GitHub repository.
-- This package is designed for the new Move Pilot Melbourne Supabase database created from the clean SQL V1 setup.
+Database:
+Uses the same NEW Move Pilot Melbourne Supabase project already configured in config.js.
+No SQL changes are required for this V2 fix.
+
+Upload all files in this package to the existing GitHub repository:
+move-pilot-melbourne
+Replace the current files.

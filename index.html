@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Move Pilot Melbourne Clean V1</title>
+<title>Move Pilot Melbourne Clean V2</title>
 <script src="config.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="theme-color" content="#10233f"/>
@@ -207,7 +207,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 <div id="setup" class="login hidden">
  <div class="panel">
   <div class="brand">Move <span>Pilot</span></div><div class="sub" style="margin-top:-2px;margin-bottom:8px;font-weight:800">Melbourne Moving Services</div>
-  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V1</b></div>
+  <div class="sub" style="margin-bottom:8px"><b>Move Pilot Melbourne · Clean V2</b></div>
   <h2>Configuration Required</h2>
   <p class="sub">Move Pilot Melbourne could not load its database configuration.</p>
   <div class="notice">
@@ -234,7 +234,7 @@ main{margin-left:240px;width:calc(100% - 240px);padding:26px}.top{display:flex;j
 </aside>
 <main>
 <section id="dashboard">
- <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V1</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
+ <div class="top"><div><h1>Dashboard</h1><div class="sub"><b>Move Pilot Melbourne · Clean V2</b></div><div class="sub" id="who"></div></div><div><button class="btn primary adminOnly" onclick="show('newJob')">＋ New Inquiry</button> <button class="btn secondary" onclick="signOut()">Sign out</button></div></div>
  <div class="cards">
   <div class="card"><div class="label">Pending</div><div class="metric" id="mInquiry">0</div></div>
   <div class="card"><div class="label">Needs Staff</div><div class="metric" id="mNeeds">0</div></div>
@@ -1096,7 +1096,7 @@ boot()
  });
  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const standalone=window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches;
  if(isIOS && !standalone){setTimeout(()=>{document.getElementById('installText').textContent='On iPhone: tap Share in Safari, then Add to Home Screen.';btn.textContent='How to install';hint.style.display='block';},1200)}
- if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean1').then(r=>r.update()).catch(()=>{}));}
+ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js?v=melbourne-clean2').then(r=>r.update()).catch(()=>{}));}
 })();
 </script>
 </body>
