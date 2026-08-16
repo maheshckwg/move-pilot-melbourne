@@ -1,4 +1,4 @@
-const CACHE='move-pilot-melbourne-clean-v5';
+const CACHE='move-pilot-melbourne-clean-v7';
 const CORE=['./','./index.html','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',e=>{
